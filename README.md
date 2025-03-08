@@ -25,6 +25,11 @@ pip install -r requirements.txt
 # API配置
 tushare_token: "您的Tushare API Token"  # 请替换为您的Tushare API Token
 
+# 策略选择
+strategy:
+  name: "KDJ"  # 可选策略: "KDJ" 或 "LSTM"
+  description: "基于KDJ指标的超买超卖策略"
+
 # 股票代码列表
 stock_code: 
   - '002594.SZ'  # 比亚迪
@@ -37,11 +42,17 @@ update_data: True  # 是否更新本地数据库中的数据
 
 2. 运行主程序
 
+从项目根目录运行：
 ```bash
-python src/main.py
+python run.py
 ```
 
-3. 程序会自动使用配置文件中的API Token；如果Token未设置或无效，则会提示您输入
+或者直接运行主模块：
+```bash
+python -m src.main
+```
+
+3. 程序会自动使用配置文件中的API Token和策略设置
 
 ## 配置说明
 
@@ -64,17 +75,32 @@ python src/main.py
 ## 项目结构
 
 ```
+├── run.py                     # 主运行脚本
 ├── config.yaml                # 配置文件
 ├── requirements.txt           # 依赖列表
 ├── dataset/
 │   └── stocktrading/         # 股票数据存储文件夹
-├── src/
+├── pictures/                  # 回测结果图表保存文件夹
+├── src/                       # 源代码包
+│   ├── __init__.py           # 包初始化文件
 │   ├── main.py               # 主程序入口
 │   ├── config_manager.py     # 配置管理模块
 │   ├── data_fetcher.py       # 数据获取模块
-│   ├── stock_selector.py     # 选股策略模块
+│   ├── stock_selector.py     # 选股策略模块（旧实现）
 │   ├── backtest.py           # 回测模块
-│   └── update_log.py         # 日志更新辅助程序
+│   ├── operators/            # 算子文件夹
+│   │   ├── __init__.py
+│   │   ├── base_operator.py  # 算子基类
+│   │   └── tech_operators.py # 技术指标算子
+│   ├── strategies/           # 策略文件夹
+│   │   ├── __init__.py
+│   │   ├── base_strategy.py  # 策略基类
+│   │   ├── kdj_strategy.py   # KDJ策略
+│   │   └── lstm_strategy.py  # LSTM预测策略
+│   └── models/               # 模型文件夹
+│       ├── __init__.py
+│       ├── base_model.py     # 模型基类
+│       └── lstm_model.py     # LSTM模型实现
 ├── development_log.md        # 开发日志
 └── README.md                 # 说明文档
 ```
@@ -87,19 +113,7 @@ python src/main.py
 
 1. **自动记录回测结果**：每次成功运行回测后，程序会自动将回测结果记录到日志文件中
 2. **版本管理**：使用不同级别的标题区分不同版本和不同的修改内容
-3. **手动更新**：可以使用update_log.py脚本手动添加新版本或新的修改记录
-
-### 使用日志更新工具
-
-添加新版本：
-```bash
-python src/update_log.py version v0.3 -d "版本描述（可选）"
-```
-
-添加新的修改记录：
-```bash
-python src/update_log.py modify "修改标题" "修改描述"
-```
+3. **直接对话更新**：通过与AI助手对话，直接更新日志文件中的版本和修改记录
 
 ## 注意事项
 

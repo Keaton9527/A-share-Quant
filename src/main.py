@@ -8,14 +8,23 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from tqdm import tqdm
 
-from config_manager import ConfigManager
-from data_fetcher import DataFetcher
-from stock_selector import KDJStockSelector
-from backtest import Backtest
+from .config_manager import ConfigManager
+from .data_fetcher import DataFetcher
+from .backtest import Backtest
+from .strategies import KDJStrategy, LSTMStrategy
 
 
-def update_log_file(equal_weight_result, market_cap_result, latest_date):
-    """更新开发日志文件，记录回测结果"""
+def update_log_file(equal_weight_result, market_cap_result, latest_date, strategy_name, save_path):
+    """
+    更新开发日志文件，记录回测结果
+    
+    Args:
+        equal_weight_result: 等权重回测结果
+        market_cap_result: 市值加权回测结果
+        latest_date: 最新回测日期
+        strategy_name: 策略名称
+        save_path: 保存图表的路径
+    """
     log_file = 'development_log.md'
     
     if not os.path.exists(log_file):
@@ -39,7 +48,7 @@ def update_log_file(equal_weight_result, market_cap_result, latest_date):
 
 #### 回测信息
 - 回测日期：{latest_date.strftime('%Y-%m-%d')}
-- 回测策略：KDJ策略（J值低于0买入，J值高于70卖出）
+- 回测策略：{strategy_name}策略
 
 #### 等权重策略结果
 ```
@@ -51,7 +60,7 @@ def update_log_file(equal_weight_result, market_cap_result, latest_date):
 {str(market_cap_result.summary()).replace('{', '').replace('}', '').replace("'", "")}
 ```
 
-*回测结果图表已保存为 backtest_result.png*
+*回测结果图表已保存为 {save_path}*
 """
             # 替换占位符
             updated_content = content.replace(result_placeholder, result_text)
@@ -100,7 +109,7 @@ def main():
     # 加载股票数据
     print("正在加载股票数据...")
     stock_data = {}
-    for stock_code in tqdm(stock_codes, desc="加载股票数据"):
+    for stock_code in stock_codes:
         try:
             df = data_fetcher.load_stock_data(stock_code)
             stock_data[stock_code] = df
@@ -112,20 +121,46 @@ def main():
         print("错误：未能加载任何股票数据")
         return
     
-    # 创建KDJ选股器
-    kdj_params = config_manager.get_kdj_params()
-    selector = KDJStockSelector(
-        n=kdj_params.get('n', 9),
-        m1=kdj_params.get('m1', 3),
-        m2=kdj_params.get('m2', 3),
-        buy_threshold=kdj_params.get('buy_threshold', 0),
-        sell_threshold=kdj_params.get('sell_threshold', 70)
-    )
+    # 从配置文件获取策略选择
+    strategy_config = config_manager.get_strategy_config()
+    strategy_name = strategy_config.get('name', 'KDJ').upper()
+    strategy_desc = strategy_config.get('description', '')
+    
+    print(f"使用策略: {strategy_name}")
+    print(f"策略描述: {strategy_desc}")
+    
+    # 创建选择的策略
+    if strategy_name == "KDJ":
+        # 创建KDJ策略
+        kdj_params = config_manager.get_kdj_params()
+        strategy = KDJStrategy(
+            buy_threshold=kdj_params.get('buy_threshold', 0),
+            sell_threshold=kdj_params.get('sell_threshold', 70),
+            n=kdj_params.get('n', 9),
+            m1=kdj_params.get('m1', 3),
+            m2=kdj_params.get('m2', 3)
+        )
+    elif strategy_name == "LSTM":
+        # 创建LSTM策略
+        lstm_params = config_manager.get_lstm_params()
+        model_dir = lstm_params.get('model_dir', 'models')
+        os.makedirs(model_dir, exist_ok=True)
+        model_path = os.path.join(model_dir, 'lstm_model.pkl')
+        
+        strategy = LSTMStrategy(
+            sequence_length=lstm_params.get('sequence_length', 10),
+            model_path=model_path,
+            train_before_predict=lstm_params.get('train_before_predict', True)
+        )
+    else:
+        print(f"错误：无效的策略选择 {strategy_name}")
+        print(f"支持的策略: KDJ, LSTM")
+        return
     
     # 获取最新日期的选股结果
-    print("正在进行KDJ选股...")
+    print(f"正在使用{strategy.name}策略进行选股...")
     latest_date = max(df['trade_date'].max() for df in stock_data.values())
-    signals = selector.screen_stocks(stock_data, latest_date)
+    signals = strategy.generate_signals(stock_data, latest_date)
     
     print(f"选股日期: {latest_date.strftime('%Y-%m-%d')}")
     print(f"买入信号: {signals['buy']}")
@@ -156,14 +191,14 @@ def main():
     
     # 运行等权重回测
     print("正在进行等权重回测...")
-    equal_weight_result = backtest.run(selector, weighting_method='equal')
+    equal_weight_result = backtest.run(strategy, weighting_method='equal')
     print("等权重回测结果:")
     for key, value in equal_weight_result.summary().items():
         print(f"  {key}: {value}")
     
     # 运行市值加权回测
     print("正在进行市值加权回测...")
-    market_cap_result = backtest.run(selector, weighting_method='market_cap')
+    market_cap_result = backtest.run(strategy, weighting_method='market_cap')
     print("市值加权回测结果:")
     for key, value in market_cap_result.summary().items():
         print(f"  {key}: {value}")
@@ -175,23 +210,28 @@ def main():
     equity_curve_equal = (1 + equal_weight_result.cumulative_returns) * equal_weight_result.initial_capital
     equity_curve_market = (1 + market_cap_result.cumulative_returns) * market_cap_result.initial_capital
     
-    plt.plot(equity_curve_equal.index, equity_curve_equal, label='等权重')
-    plt.plot(equity_curve_market.index, equity_curve_market, label='市值加权')
+    plt.plot(equity_curve_equal.index, equity_curve_equal, label='Equal Weight')
+    plt.plot(equity_curve_market.index, equity_curve_market, label='Market Cap Weighted')
     
-    plt.title('KDJ策略回测结果')
-    plt.xlabel('日期')
-    plt.ylabel('净值')
+    plt.title(f'{strategy.name} Strategy Backtest Results')
+    plt.xlabel('Date')
+    plt.ylabel('Value')
     plt.grid(True)
     plt.legend()
     
-    # 保存图表
-    plt.savefig('backtest_result.png')
+    # 确保pictures文件夹存在
+    os.makedirs('pictures', exist_ok=True)
+    
+    # 使用日期_策略名格式保存图表
+    date_str = latest_date.strftime('%Y%m%d')
+    save_path = f'pictures/{date_str}_{strategy.name}.png'
+    plt.savefig(save_path)
     plt.close()
     
-    print("回测结果图表已保存到 backtest_result.png")
+    print(f"回测结果图表已保存到 {save_path}")
     
     # 更新日志文件
-    update_log_file(equal_weight_result, market_cap_result, latest_date)
+    update_log_file(equal_weight_result, market_cap_result, latest_date, strategy.name, save_path)
 
 
 if __name__ == "__main__":

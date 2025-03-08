@@ -3,4 +3,6 @@ numpy>=1.20.0
 matplotlib>=3.4.0
 tushare>=1.2.89
 pyyaml>=6.0
-tqdm>=4.62.0 
+tqdm>=4.62.0
+torch>=1.10.0
+scikit-learn>=1.0.0 

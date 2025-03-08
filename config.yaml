@@ -3,6 +3,11 @@
 # API配置
 tushare_token: "eaf33a386c2131d066dce3c7b777d519fdd054d59dd2a5f038d4623b"
 
+# 策略选择
+strategy:
+  name: "LSTM"  # 可选策略: "KDJ"(技术指标交易) 或 "LSTM"(深度学习预测)
+  description: "基于LSTM模型的股票价格预测策略"
+
 # 股票池代码列表
 stock_code: 
   - '002594.SZ'  # 比亚迪
@@ -25,13 +30,21 @@ backtest:
   start_capital: 100000  # 初始资金：10万元
   commission_rate: 0.001  # 交易成本：千分之1
   slippage: 0.0005  # 滑点：0.05%
-  start_date: ''  # 回测开始日期，默认会设置为距今一年
+  start_date: '2018-01-01'  # 回测开始日期，默认会设置为距今一年
   end_date: ''  # 回测结束日期，默认为最新日期
 
-# KDJ指标参数
+# KDJ策略参数
 kdj:
-  n: 9  # KDJ的N参数
-  m1: 3  # KDJ的M1参数
-  m2: 3  # KDJ的M2参数
-  buy_threshold: 0  # 买入信号：J值低于该值
-  sell_threshold: 70  # 卖出信号：J值高于该值 
+  n: 9  # KDJ的N参数，周期越长越能过滤短期波动
+  m1: 3  # K值的平滑因子，值越小对价格变化越敏感
+  m2: 3  # D值的平滑因子，值越小对价格变化越敏感
+  buy_threshold: 0  # 买入信号阈值：J值低于该值视为超卖区域买入信号
+  sell_threshold: 70  # 卖出信号阈值：J值高于该值视为超买区域卖出信号
+
+# LSTM策略参数
+lstm:
+  sequence_length: 10  # 使用过去多少天的数据作为输入，较长的序列可捕获更长期的模式
+  hidden_dim: 50  # 隐藏层维度，更大的维度可以学习更复杂的特征
+  num_layers: 2  # LSTM层数，更深的网络可以学习更抽象的表示
+  train_before_predict: true  # 是否在预测前训练模型，true代表使用最新数据训练
+  model_dir: "models"  # 模型保存目录 

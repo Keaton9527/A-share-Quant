@@ -53,6 +53,7 @@ class DataFetcher:
         # 记录API调用次数
         api_calls = 0
         
+        print(f"开始更新 {len(stock_codes)} 只股票的数据...")
         for stock_code in stock_codes:
             file_path = os.path.join(self.data_dir, f"{stock_code}.csv")
             

@@ -83,6 +83,35 @@ class ConfigManager:
             print("警告：Tushare API Token未设置或使用了默认值")
             print("请在config.yaml中设置有效的tushare_token")
         return token
+    
+    def get_strategy_config(self):
+        """
+        获取策略配置
+        
+        Returns:
+            dict: 策略配置，包含策略名称和描述
+        """
+        default_strategy = {
+            'name': 'KDJ',
+            'description': '基于KDJ指标的超买超卖策略'
+        }
+        return self.config.get('strategy', default_strategy)
+    
+    def get_lstm_params(self):
+        """
+        获取LSTM策略参数
+        
+        Returns:
+            dict: LSTM策略参数
+        """
+        default_params = {
+            'sequence_length': 10,
+            'hidden_dim': 50,
+            'num_layers': 2,
+            'train_before_predict': True,
+            'model_dir': 'models'
+        }
+        return self.config.get('lstm', default_params)
 
 
 # 示例使用

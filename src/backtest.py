@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import os
 from tqdm import tqdm
 
-from stock_selector import KDJStockSelector
+from .stock_selector import KDJStockSelector
 
 
 class BacktestResult:
@@ -71,15 +71,15 @@ class BacktestResult:
         
         # 绘制净值曲线
         equity_curve = (1 + self.cumulative_returns) * self.initial_capital
-        equity_curve.plot(ax=axes[0], title='策略净值曲线')
-        axes[0].set_ylabel('净值')
+        equity_curve.plot(ax=axes[0], title='Equity Curve')
+        axes[0].set_ylabel('Value')
         axes[0].grid(True)
         
         # 绘制回撤曲线
         cumulative_max = self.cumulative_returns.cummax()
         drawdown = (self.cumulative_returns - cumulative_max) / (1 + cumulative_max)
-        drawdown.plot(ax=axes[1], title='回撤曲线')
-        axes[1].set_ylabel('回撤')
+        drawdown.plot(ax=axes[1], title='Drawdown Curve')
+        axes[1].set_ylabel('Drawdown')
         axes[1].grid(True)
         
         plt.tight_layout()
@@ -124,12 +124,12 @@ class Backtest:
         # 按照升序排列交易日期，确保回测按时间顺序进行
         self.trading_dates = sorted(all_dates)
     
-    def run(self, selector, weighting_method='equal'):
+    def run(self, strategy, weighting_method='equal'):
         """
         执行回测
         
         Args:
-            selector: 选股器实例
+            strategy: 策略实例，必须有generate_signals方法
             weighting_method: 权重分配方法，可选值为'equal'（等权重）或'market_cap'（市值加权）
             
         Returns:
@@ -168,10 +168,10 @@ class Backtest:
                     close_price = current_data[code]['close'].iloc[0]
                     portfolio_value += shares * close_price
             
-            # 计算KDJ指标并获取信号
+            # 计算指标并获取信号
             available_stock_data = {code: df for code, df in self.stock_data.items() 
                                    if code in current_data}
-            signals = selector.screen_stocks(available_stock_data, date)
+            signals = strategy.generate_signals(available_stock_data, date)
             
             # 执行卖出操作（先卖出后买入）
             sell_codes = []
@@ -289,8 +289,8 @@ if __name__ == "__main__":
     import os
     import pandas as pd
     from datetime import datetime, timedelta
-    from data_fetcher import DataFetcher
-    from stock_selector import KDJStockSelector
+    from .data_fetcher import DataFetcher
+    from .stock_selector import KDJStockSelector
     
     data_dir = 'dataset/stocktrading'
     stock_codes = ['000001.SZ', '002594.SZ']
