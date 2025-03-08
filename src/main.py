@@ -6,11 +6,65 @@ import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
+from tqdm import tqdm
 
 from config_manager import ConfigManager
 from data_fetcher import DataFetcher
 from stock_selector import KDJStockSelector
 from backtest import Backtest
+
+
+def update_log_file(equal_weight_result, market_cap_result, latest_date):
+    """更新开发日志文件，记录回测结果"""
+    log_file = 'development_log.md'
+    
+    if not os.path.exists(log_file):
+        print(f"警告：找不到日志文件 {log_file}")
+        return
+    
+    try:
+        with open(log_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 查找最新版本的运行结果部分
+        run_result_marker = "### 运行结果"
+        result_placeholder = "*待回测完成后补充*"
+        
+        if run_result_marker in content and result_placeholder in content:
+            # 获取当前日期
+            current_date = datetime.now().strftime('%Y-%m-%d')
+            
+            # 格式化回测结果
+            result_text = f"""*{current_date} 回测结果*
+
+#### 回测信息
+- 回测日期：{latest_date.strftime('%Y-%m-%d')}
+- 回测策略：KDJ策略（J值低于0买入，J值高于70卖出）
+
+#### 等权重策略结果
+```
+{str(equal_weight_result.summary()).replace('{', '').replace('}', '').replace("'", "")}
+```
+
+#### 市值加权策略结果
+```
+{str(market_cap_result.summary()).replace('{', '').replace('}', '').replace("'", "")}
+```
+
+*回测结果图表已保存为 backtest_result.png*
+"""
+            # 替换占位符
+            updated_content = content.replace(result_placeholder, result_text)
+            
+            # 写回文件
+            with open(log_file, 'w', encoding='utf-8') as f:
+                f.write(updated_content)
+                
+            print(f"已更新回测结果到日志文件 {log_file}")
+        else:
+            print(f"警告：未找到可更新的结果占位符")
+    except Exception as e:
+        print(f"更新日志文件时出错: {e}")
 
 
 def main():
@@ -46,7 +100,7 @@ def main():
     # 加载股票数据
     print("正在加载股票数据...")
     stock_data = {}
-    for stock_code in stock_codes:
+    for stock_code in tqdm(stock_codes, desc="加载股票数据"):
         try:
             df = data_fetcher.load_stock_data(stock_code)
             stock_data[stock_code] = df
@@ -135,6 +189,9 @@ def main():
     plt.close()
     
     print("回测结果图表已保存到 backtest_result.png")
+    
+    # 更新日志文件
+    update_log_file(equal_weight_result, market_cap_result, latest_date)
 
 
 if __name__ == "__main__":

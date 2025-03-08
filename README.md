@@ -73,8 +73,32 @@ python src/main.py
 │   ├── config_manager.py     # 配置管理模块
 │   ├── data_fetcher.py       # 数据获取模块
 │   ├── stock_selector.py     # 选股策略模块
-│   └── backtest.py           # 回测模块
+│   ├── backtest.py           # 回测模块
+│   └── update_log.py         # 日志更新辅助程序
+├── development_log.md        # 开发日志
 └── README.md                 # 说明文档
+```
+
+## 开发日志
+
+项目包含一个开发日志文件（development_log.md），用于记录项目的修改历史和回测结果。
+
+### 日志功能
+
+1. **自动记录回测结果**：每次成功运行回测后，程序会自动将回测结果记录到日志文件中
+2. **版本管理**：使用不同级别的标题区分不同版本和不同的修改内容
+3. **手动更新**：可以使用update_log.py脚本手动添加新版本或新的修改记录
+
+### 使用日志更新工具
+
+添加新版本：
+```bash
+python src/update_log.py version v0.3 -d "版本描述（可选）"
+```
+
+添加新的修改记录：
+```bash
+python src/update_log.py modify "修改标题" "修改描述"
 ```
 
 ## 注意事项
