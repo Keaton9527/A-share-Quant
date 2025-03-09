@@ -1,12 +1,12 @@
 # 股票池选股配置文件
 
 # API配置
-tushare_token: "eaf33a386c2131d066dce3c7b777d519fdd054d59dd2a5f038d4623b"
+tushare_token: ""
 
 # 策略选择
 strategy:
-  name: "LSTM"  # 可选策略: "KDJ"(技术指标交易) 或 "LSTM"(深度学习预测)
-  description: "基于LSTM模型的股票价格预测策略"
+  name: "LSTM"  # 可选策略: "KDJ"(技术指标交易)、"LSTM"(深度学习预测)或"Z"(z哥投资逻辑)
+  description: "lstm策略"
 
 # 股票池代码列表
 stock_code: 
@@ -47,4 +47,13 @@ lstm:
   hidden_dim: 50  # 隐藏层维度，更大的维度可以学习更复杂的特征
   num_layers: 2  # LSTM层数，更深的网络可以学习更抽象的表示
   train_before_predict: true  # 是否在预测前训练模型，true代表使用最新数据训练
-  model_dir: "models"  # 模型保存目录 
+  model_dir: "models"  # 模型保存目录
+
+# Z策略参数(z哥投资逻辑)
+z_strategy:
+  kdj_buy_threshold: 0    # J值低于此值视为超卖区域
+  kdj_sell_threshold: 80   # J值高于此值视为超买区域
+  vol_breakout_threshold: 1.4  # 成交量突破阈值（相对于20日均量）
+  consecutive_vol_days: 3   # 连续成交量放大的天数要求
+  stop_loss_pct: 0.03      # 止损百分比（相对于买入点）
+  vol_change_threshold: 0.3 # 量能变化率阈值 

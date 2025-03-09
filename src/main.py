@@ -11,7 +11,7 @@ from tqdm import tqdm
 from .config_manager import ConfigManager
 from .data_fetcher import DataFetcher
 from .backtest import Backtest
-from .strategies import KDJStrategy, LSTMStrategy
+from .strategies import KDJStrategy, LSTMStrategy, ZStrategy
 
 
 def update_log_file(equal_weight_result, market_cap_result, latest_date, strategy_name, save_path):
@@ -121,16 +121,15 @@ def main():
         print("错误：未能加载任何股票数据")
         return
     
-    # 从配置文件获取策略选择
+    # 根据配置使用指定策略
     strategy_config = config_manager.get_strategy_config()
     strategy_name = strategy_config.get('name', 'KDJ').upper()
     strategy_desc = strategy_config.get('description', '')
     
-    print(f"使用策略: {strategy_name}")
-    print(f"策略描述: {strategy_desc}")
+    print(f"\n使用策略: {strategy_name} - {strategy_desc}")
     
-    # 创建选择的策略
-    if strategy_name == "KDJ":
+    # 创建策略实例
+    if strategy_name == 'KDJ':
         # 创建KDJ策略
         kdj_params = config_manager.get_kdj_params()
         strategy = KDJStrategy(
@@ -140,7 +139,7 @@ def main():
             m1=kdj_params.get('m1', 3),
             m2=kdj_params.get('m2', 3)
         )
-    elif strategy_name == "LSTM":
+    elif strategy_name == 'LSTM':
         # 创建LSTM策略
         lstm_params = config_manager.get_lstm_params()
         model_dir = lstm_params.get('model_dir', 'models')
@@ -152,10 +151,20 @@ def main():
             model_path=model_path,
             train_before_predict=lstm_params.get('train_before_predict', True)
         )
+    elif strategy_name == 'Z':
+        # 创建Z策略
+        z_params = config_manager.get_z_strategy_params()
+        strategy = ZStrategy(
+            kdj_buy_threshold=z_params.get('kdj_buy_threshold', 20),
+            kdj_sell_threshold=z_params.get('kdj_sell_threshold', 80),
+            vol_breakout_threshold=z_params.get('vol_breakout_threshold', 1.8),
+            consecutive_vol_days=z_params.get('consecutive_vol_days', 5),
+            stop_loss_pct=z_params.get('stop_loss_pct', 0.03),
+            vol_change_threshold=z_params.get('vol_change_threshold', 0.3)
+        )
     else:
-        print(f"错误：无效的策略选择 {strategy_name}")
-        print(f"支持的策略: KDJ, LSTM")
-        return
+        print(f"未知策略: {strategy_name}，将使用默认的KDJ策略")
+        strategy = KDJStrategy()
     
     # 获取最新日期的选股结果
     print(f"正在使用{strategy.name}策略进行选股...")
@@ -222,9 +231,16 @@ def main():
     # 确保pictures文件夹存在
     os.makedirs('pictures', exist_ok=True)
     
-    # 使用日期_策略名格式保存图表
+    # 使用新的命名格式: <date>_<strategy_name>_<backtest_start_date>_<otherinfo>.png
     date_str = latest_date.strftime('%Y%m%d')
-    save_path = f'pictures/{date_str}_{strategy.name}.png'
+    
+    # 获取回测开始日期
+    backtest_start_date = start_date.strftime('%Y%m%d')
+    
+    # 构建图片名称，添加额外信息（如收益率）
+    other_info = f"EW{equal_weight_result.summary().get('总收益率', 0)}_MW{market_cap_result.summary().get('总收益率', 0)}"
+    
+    save_path = f'pictures/{date_str}_{strategy.name}_{backtest_start_date}_{other_info}.png'
     plt.savefig(save_path)
     plt.close()
     

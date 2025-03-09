@@ -99,10 +99,10 @@ class ConfigManager:
     
     def get_lstm_params(self):
         """
-        获取LSTM策略参数
+        获取LSTM参数
         
         Returns:
-            dict: LSTM策略参数
+            LSTM参数字典
         """
         default_params = {
             'sequence_length': 10,
@@ -111,7 +111,26 @@ class ConfigManager:
             'train_before_predict': True,
             'model_dir': 'models'
         }
+        
         return self.config.get('lstm', default_params)
+    
+    def get_z_strategy_params(self):
+        """
+        获取Z策略（z哥投资逻辑）参数
+        
+        Returns:
+            Z策略参数字典
+        """
+        default_params = {
+            'kdj_buy_threshold': 20,   
+            'kdj_sell_threshold': 80,   
+            'vol_breakout_threshold': 1.8,  
+            'consecutive_vol_days': 5,   
+            'stop_loss_pct': 0.03,      
+            'vol_change_threshold': 0.3
+        }
+        
+        return self.config.get('z_strategy', default_params)
 
 
 # 示例使用

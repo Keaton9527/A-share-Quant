@@ -3,10 +3,20 @@
 """
 from .base_operator import BaseOperator
 from .tech_operators import TechOperator, KDJOperator, MACDOperator
+from .volume_operators import (
+    RelativeVolumeOperator, 
+    VolumeChangeOperator, 
+    VolumePriceCorrelationOperator,
+    VolumeBreakoutOperator
+)
 
 __all__ = [
     'BaseOperator',
     'TechOperator',
     'KDJOperator',
-    'MACDOperator'
+    'MACDOperator',
+    'RelativeVolumeOperator',
+    'VolumeChangeOperator',
+    'VolumePriceCorrelationOperator',
+    'VolumeBreakoutOperator'
 ] 
